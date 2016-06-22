@@ -8,6 +8,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	gologfmt "github.com/go-logfmt/logfmt"
 )
 
 const (
@@ -93,28 +95,13 @@ func LogfmtFormat() Format {
 }
 
 func logfmt(buf *bytes.Buffer, ctx []interface{}, color int) {
-	for i := 0; i < len(ctx); i += 2 {
-		if i != 0 {
-			buf.WriteByte(' ')
-		}
-
-		k, ok := ctx[i].(string)
-		v := formatLogfmtValue(ctx[i+1])
-		if !ok {
-			k, v = errorKey, formatLogfmtValue(k)
-		}
-
-		// XXX: we should probably check that all of your key bytes aren't invalid
-		if color > 0 {
-			fmt.Fprintf(buf, "\x1b[%dm%s\x1b[0m=%s", color, k, v)
-		} else {
-			buf.WriteString(k)
-			buf.WriteByte('=')
-			buf.WriteString(v)
-		}
+	enc := gologfmt.NewEncoder(buf)
+	if err := enc.EncodeKeyvals(ctx...); err != nil {
+		panic(err)
 	}
-
-	buf.WriteByte('\n')
+	if err := enc.EndRecord(); err != nil {
+		panic(err)
+	}
 }
 
 // JsonFormat formats log records as JSON objects separated by newlines.
